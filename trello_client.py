@@ -56,10 +56,14 @@ def move(name, column_name):
       # И выполним запрос к API для перемещения задачи в нужную колонку    
       requests.put(base_url.format('cards') + '/' + task_id + '/idList', data={'value': column['id'], **auth_params})    
       break  
+def columnCreate(new_column_name):
+  pass
 
 if __name__ == "__main__":    
   if len(sys.argv) <= 2:    
-    read()    
+    read()
+  elif sys.argv[1] == 'create-column':    
+    columnCreate(sys.argv[2])     
   elif sys.argv[1] == 'create':    
     create(sys.argv[2], sys.argv[3])    
   elif sys.argv[1] == 'move':    
