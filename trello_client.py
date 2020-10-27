@@ -31,11 +31,8 @@ def create(name, column_name):
       requests.post(base_url.format('cards'), data={'name': name, 'idList': column['id'], **auth_params})      
       break
 
-def move(name, column_name):    
-  # Получим данные всех колонок на доске    
-  column_data = requests.get(base_url.format('boards') + '/' + board_id + '/lists', params=auth_params).json()    
-      
-  # Среди всех колонок нужно найти задачу по имени и получить её id    
+def move(name, column_name):     
+  column_data = requests.get(base_url.format('boards') + '/' + board_id + '/lists', params=auth_params).json()      
   task_id = None    
   for column in column_data:    
     column_tasks = requests.get(base_url.format('lists') + '/' + column['id'] + '/cards', params=auth_params).json()    
@@ -45,21 +42,23 @@ def move(name, column_name):
         break    
       if task_id:    
         break    
-  # Теперь, когда у нас есть id задачи, которую мы хотим переместить    
-  # Переберём данные обо всех колонках, пока не найдём ту, в которую мы будем перемещать задачу    
   for column in column_data:    
-    if column['name'].split('(')[0].rstrip() == column_name:    
-      # И выполним запрос к API для перемещения задачи в нужную колонку    
+    if column['name'].split('(')[0].rstrip() == column_name:        
       requests.put(base_url.format('cards') + '/' + task_id + '/idList', data={'value': column['id'], **auth_params})    
       break  
-def columnCreate(new_column_name):
-  longBoardId = getLongBoardId(board_id)
-  res = requests.post(base_url.format('lists'), data={'idBoard': longBoardId, 'name': new_column_name, **auth_params})
-  print(res.text)
 
 def getLongBoardId(board_id):
   board_data = requests.get(base_url.format('boards') + '/' + board_id, params=auth_params).json()
   return board_data['id']
+
+def columnCreate(new_column_name):
+  column_data = requests.get(base_url.format('boards') + '/' + board_id + '/lists', params=auth_params).json()
+  for column in column_data:
+    if (column['name'].split('(')[0].rstrip() == new_column_name):
+      print('Лист с названием {} уже существует! Придумайте другое название..'.format(new_column_name))
+      break
+  longBoardId = getLongBoardId(board_id)
+  requests.post(base_url.format('lists'), data={'idBoard': longBoardId, 'name': new_column_name, **auth_params})
 
 def updateColumnName():
   column_data = requests.get(base_url.format('boards') + '/' + board_id + '/lists', params=auth_params).json()
