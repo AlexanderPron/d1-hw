@@ -20,14 +20,10 @@ def read():
     for task in task_data:      
       print('\t' + task['name'])
 
-def create(name, column_name):      
-  # Получим данные всех колонок на доске      
-  column_data = requests.get(base_url.format('boards') + '/' + board_id + '/lists', params=auth_params).json()      
-    
-  # Переберём данные обо всех колонках, пока не найдём ту колонку, которая нам нужна      
+def create(name, column_name):          
+  column_data = requests.get(base_url.format('boards') + '/' + board_id + '/lists', params=auth_params).json()         
   for column in column_data:      
-    if column['name'].split('(')[0].rstrip() == column_name:      
-        # Создадим задачу с именем _name_ в найденной колонке      
+    if column['name'].split('(')[0].rstrip() == column_name:        
       requests.post(base_url.format('cards'), data={'name': name, 'idList': column['id'], **auth_params})      
       break
 
@@ -55,10 +51,21 @@ def columnCreate(new_column_name):
   column_data = requests.get(base_url.format('boards') + '/' + board_id + '/lists', params=auth_params).json()
   for column in column_data:
     if (column['name'].split('(')[0].rstrip() == new_column_name):
-      print('Лист с названием {} уже существует! Придумайте другое название..'.format(new_column_name))
-      break
+      print('Лист с названием {} уже существует! Придумайте другое название..\n'.format(new_column_name))
+      return False
   longBoardId = getLongBoardId(board_id)
   requests.post(base_url.format('lists'), data={'idBoard': longBoardId, 'name': new_column_name, **auth_params})
+  print('Лист {} успешно создан!\n'.format(new_column_name))
+
+def archiveList(column_name):
+  column_data = requests.get(base_url.format('boards') + '/' + board_id + '/lists', params=auth_params).json()
+  for column in column_data:
+    if (column['name'].split('(')[0].rstrip() == column_name):
+      requests.put(base_url.format('lists/') + column['id'] + '/closed', data={'value': 'true', **auth_params})
+      print('Лист {} успешно отправлен в архив!'.format(column_name))
+      return True
+  print('Листа с названием {} не существует!'.format(column_name))
+  return False
 
 def updateColumnName():
   column_data = requests.get(base_url.format('boards') + '/' + board_id + '/lists', params=auth_params).json()
@@ -67,17 +74,54 @@ def updateColumnName():
     newColumnName = '{} ({})'.format(column['name'].split('(')[0].rstrip(), len(column_tasks))
     requests.put(base_url.format('lists') + '/' + column['id'], data = {'name' : newColumnName, **auth_params})
 
+def getAvailableLists():
+  column_data = requests.get(base_url.format('boards') + '/' + board_id + '/lists', params=auth_params).json()
+  listsDict = {}
+  i = 0
+  for column in column_data:
+    i += 1
+    listsDict[str(i)] = column['name'].split('(')[0].rstrip()
+  return listsDict
+
 
 if __name__ == "__main__":
-  updateColumnName()
-  if len(sys.argv) <= 2:    
-    read()
-  elif sys.argv[1] == 'create-column':    
-    columnCreate(sys.argv[2])
-    updateColumnName()    
-  elif sys.argv[1] == 'create':    
-    create(sys.argv[2], sys.argv[3])
-    updateColumnName()    
-  elif sys.argv[1] == 'move':    
-    move(sys.argv[2], sys.argv[3])
-    updateColumnName() 
+  try:
+    response = requests.get(base_url.format('boards') + '/' + board_id, params=auth_params)
+    response.raise_for_status()
+  except requests.exceptions.HTTPError as e:
+    print('Не удалось получить данные от {}\n{}\nЗавершение программы..'.format(response.url,e))
+    sys.exit()
+  while(True):
+    print('\nCLI для работы с доской {} на trello.com'.format(response.json()['name']))
+    print('\nМеню:')
+    print('\t 1 - Показать доску')
+    print('\t 2 - Добавить лист')
+    print('\t 3 - Архивировать лист')
+    print('\t 4 - Добавить задачу')
+    print('\t 5 - Переместить задачу')
+    print('\t 6 - Выход\n')
+    choose = input('Делайте Ваш выбор: -> ')
+    if (choose == '1'):
+      updateColumnName()
+      read()
+    elif (choose == '2'):
+      new_column_name = input('Введите название нового листа: -> ')
+      columnCreate(new_column_name)
+    elif (choose == '3'):
+      availableLists = {}
+      availableLists = getAvailableLists()
+      print('\nДоступные листы:')
+      for availableList in availableLists:
+        print('\t{} - {}'.format(availableList, availableLists[availableList]))
+      column_name = input('Введите номер листа, который необходимо отправить в архив: -> ')
+      try:
+        archiveList(availableLists[column_name])
+      except KeyError:
+        print('\nНе корректный номер листа')
+      
+    elif (choose == '6'):
+      print('Завершение программы..')
+      sys.exit()
+
+
+    
