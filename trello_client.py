@@ -20,12 +20,14 @@ def read():
     for task in task_data:      
       print('\t' + task['name'])
 
-def create(name, column_name):          
+def createTask(name, column_name):          
   column_data = requests.get(base_url.format('boards') + '/' + board_id + '/lists', params=auth_params).json()         
   for column in column_data:      
     if column['name'].split('(')[0].rstrip() == column_name:        
       requests.post(base_url.format('cards'), data={'name': name, 'idList': column['id'], **auth_params})      
-      break
+      return True
+  print('Листа с названием {} не существует!'.format(column_name))
+  return False
 
 def move(name, column_name):     
   column_data = requests.get(base_url.format('boards') + '/' + board_id + '/lists', params=auth_params).json()      
@@ -56,7 +58,6 @@ def columnCreate(new_column_name):
   longBoardId = getLongBoardId(board_id)
   requests.post(base_url.format('lists'), data={'idBoard': longBoardId, 'name': new_column_name, **auth_params})
   print('Лист {} успешно создан!\n'.format(new_column_name))
-  return True
 
 def archiveList(column_name):
   column_data = requests.get(base_url.format('boards') + '/' + board_id + '/lists', params=auth_params).json()
@@ -106,25 +107,37 @@ if __name__ == "__main__":
       updateColumnName()
       read()
     elif (choose == '2'):
-      result = False
-      while(result is not True):
-        new_column_name = input('Введите название нового листа: -> ')
-        result = columnCreate(new_column_name)
+      new_column_name = input('Введите название нового листа: -> ')
+      columnCreate(new_column_name)
+      updateColumnName()
     elif (choose == '3'):
       availableLists = {}
-      flag = False
       availableLists = getAvailableLists()
       print('\nДоступные листы:')
       for availableList in availableLists:
         print('\t{} - {}'.format(availableList, availableLists[availableList]))
-      while (flag is not True):
-        column_name = input('Введите номер листа, который необходимо отправить в архив: -> ')
-        try:
-          archiveList(availableLists[column_name])
-        except KeyError:
-          print('\nНе корректный номер листа')
-          continue
-        flag = True
+      column_name = input('Введите номер листа, который необходимо отправить в архив: -> ')
+      try:
+        archiveList(availableLists[column_name])
+      except KeyError:
+        print('\nНе корректный номер листа')
+    elif (choose == '4'):
+      availableLists = {}
+      availableLists = getAvailableLists()
+      print('\nДоступные листы:')
+      for availableList in availableLists:
+        print('\t{} - {}'.format(availableList, availableLists[availableList]))
+      column_name = input('Введите номер листа, в который необходимо добавить задачу: -> ')
+      try:
+        availableLists[column_name]
+      except KeyError:
+        print('\nНе корректный номер листа')
+        continue
+      name = input('Введите текст новой задачи: -> ')
+      createTask(name, availableLists[column_name])
+      updateColumnName()
+    elif (choose == '5'):
+      print('Перемещаем задачу..')
       
     elif (choose == '6'):
       print('Завершение программы..')
